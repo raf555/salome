@@ -14,7 +14,7 @@ var (
 
 // HexString is a representation of hex-encoded string.
 //
-// Empty string is represented by nil slices.
+// Empty string is represented by nil or empty slice.
 type HexString []byte
 
 func (h HexString) String() string {
@@ -34,6 +34,7 @@ func (h HexString) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (h *HexString) UnmarshalText(text []byte) error {
 	if len(text) == 0 {
+		*h = nil
 		return nil
 	}
 
@@ -55,6 +56,7 @@ func (h HexString) MarshalJSON() ([]byte, error) {
 		return []byte(`""`), nil
 	}
 
+	// MarshalText never returns error
 	b, _ := h.MarshalText()
 
 	out := make([]byte, len(b)+2)
