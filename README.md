@@ -1,6 +1,6 @@
 # salome
 
-> **Sa**tu **L**ibrary G**o** (buat) Rame-ra**me** 
+**Sa**tu **L**ibrary G**o** (buat) Rame-ra**me** 
 
 ![Salome](https://media1.tenor.com/m/nC_9aPEa5G0AAAAC/salome-hyakumantenbara-salome.gif)
 

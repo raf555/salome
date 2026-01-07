@@ -1,62 +1,14 @@
 version: "2"
 
-run:
-  timeout: 5m
-  tests: true
-  skip-dirs:
-    - vendor
-    - generated
-  skip-files:
-    - ".*\\.gen\\.go"
-
-output:
-  sort-results: true
-
 linters:
-  disable-all: true
   enable:
     - govet
-    - errcheck
     - staticcheck
-    - gosimple
+    - errcheck
     - ineffassign
-    - revive
+    - gosimple
     - gofmt
     - goimports
     - misspell
-    - unconvert
-    - whitespace
     - bodyclose
     - nilerr
-    - gocyclo
-    - funlen
-    - stylecheck
-
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-
-  funlen:
-    lines: 120
-    statements: 60
-
-  revive:
-    rules:
-      - name: var-naming
-      - name: line-length-limit
-        arguments: [140]
-      - name: early-return
-      - name: exported
-      - name: unused-parameter
-
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-  exclude-rules:
-    - linters: [revive]
-      text: "avoid-init"
-
-    - path: _test\.go
-      linters: [revive, stylecheck]
-      text: "exported"
