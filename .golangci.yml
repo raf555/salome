@@ -1,3 +1,5 @@
+version: "2"
+
 run:
   timeout: 5m
   tests: true
@@ -13,31 +15,21 @@ output:
 linters:
   disable-all: true
   enable:
-    # --- Core correctness ---
     - govet
     - errcheck
     - staticcheck
     - gosimple
     - ineffassign
-    - typecheck
-
-    # --- Code quality ---
     - revive
     - gofmt
     - goimports
     - misspell
     - unconvert
     - whitespace
-
-    # --- Safety ---
     - bodyclose
     - nilerr
-
-    # --- Complexity (soft enforcement) ---
     - gocyclo
     - funlen
-
-    # --- Style (not too strict) ---
     - stylecheck
 
 linters-settings:
@@ -62,15 +54,9 @@ issues:
   max-same-issues: 0
 
   exclude-rules:
-    # Allow init() when needed (common in libs sometimes)
-    - linters:
-        - revive
+    - linters: [revive]
       text: "avoid-init"
 
-    # Don't require comments on test exported funcs
     - path: _test\.go
-      linters:
-        - revive
-        - stylecheck
+      linters: [revive, stylecheck]
       text: "exported"
-
