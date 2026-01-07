@@ -13,8 +13,8 @@ linters:
     - unconvert
     - whitespace
 
-  disable:
-    # - revive
+  # disable:
+  #   - revive
 
   exclusions:
     generated: lax
