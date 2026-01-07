@@ -1,0 +1,76 @@
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - generated
+  skip-files:
+    - ".*\\.gen\\.go"
+
+output:
+  sort-results: true
+
+linters:
+  disable-all: true
+  enable:
+    # --- Core correctness ---
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - typecheck
+
+    # --- Code quality ---
+    - revive
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - whitespace
+
+    # --- Safety ---
+    - bodyclose
+    - nilerr
+
+    # --- Complexity (soft enforcement) ---
+    - gocyclo
+    - funlen
+
+    # --- Style (not too strict) ---
+    - stylecheck
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+
+  funlen:
+    lines: 120
+    statements: 60
+
+  revive:
+    rules:
+      - name: var-naming
+      - name: line-length-limit
+        arguments: [140]
+      - name: early-return
+      - name: exported
+      - name: unused-parameter
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Allow init() when needed (common in libs sometimes)
+    - linters:
+        - revive
+      text: "avoid-init"
+
+    # Don't require comments on test exported funcs
+    - path: _test\.go
+      linters:
+        - revive
+        - stylecheck
+      text: "exported"
+
