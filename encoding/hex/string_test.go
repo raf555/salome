@@ -1,4 +1,4 @@
-package encoding
+package hex
 
 import (
 	"encoding/json"
@@ -6,26 +6,26 @@ import (
 	"testing"
 )
 
-func TestHexString_String(t *testing.T) {
+func TestString_String(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    HexString
+		input    String
 		expected string
 	}{
 		{
 			name:     "empty hex string",
-			input:    HexString([]byte{}),
-			expected: "HexString(\"\")",
+			input:    String([]byte{}),
+			expected: "",
 		},
 		{
 			name:     "simple hex string",
-			input:    HexString([]byte{0x01, 0x02, 0x03}),
-			expected: "HexString(\"010203\")",
+			input:    String([]byte{0x01, 0x02, 0x03}),
+			expected: "010203",
 		},
 		{
 			name:     "hex string with all bytes",
-			input:    HexString([]byte{0xff, 0xaa, 0x55}),
-			expected: "HexString(\"ffaa55\")",
+			input:    String([]byte{0xff, 0xaa, 0x55}),
+			expected: "ffaa55",
 		},
 	}
 
@@ -39,28 +39,28 @@ func TestHexString_String(t *testing.T) {
 	}
 }
 
-func TestHexString_MarshalText(t *testing.T) {
+func TestString_MarshalText(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    HexString
+		input    String
 		expected string
 		wantErr  bool
 	}{
 		{
 			name:     "empty hex string",
-			input:    HexString([]byte{}),
+			input:    String([]byte{}),
 			expected: "",
 			wantErr:  false,
 		},
 		{
 			name:     "simple hex encoding",
-			input:    HexString([]byte{0x01, 0x02, 0x03}),
+			input:    String([]byte{0x01, 0x02, 0x03}),
 			expected: "010203",
 			wantErr:  false,
 		},
 		{
 			name:     "hex with letters",
-			input:    HexString([]byte{0xde, 0xad, 0xbe, 0xef}),
+			input:    String([]byte{0xde, 0xad, 0xbe, 0xef}),
 			expected: "deadbeef",
 			wantErr:  false,
 		},
@@ -80,35 +80,35 @@ func TestHexString_MarshalText(t *testing.T) {
 	}
 }
 
-func TestHexString_UnmarshalText(t *testing.T) {
+func TestString_UnmarshalText(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected HexString
+		expected String
 		wantErr  bool
 	}{
 		{
 			name:     "empty string",
 			input:    "",
-			expected: HexString([]byte{}),
+			expected: String([]byte{}),
 			wantErr:  false,
 		},
 		{
 			name:     "valid hex string",
 			input:    "010203",
-			expected: HexString([]byte{0x01, 0x02, 0x03}),
+			expected: String([]byte{0x01, 0x02, 0x03}),
 			wantErr:  false,
 		},
 		{
 			name:     "valid hex with letters",
 			input:    "deadbeef",
-			expected: HexString([]byte{0xde, 0xad, 0xbe, 0xef}),
+			expected: String([]byte{0xde, 0xad, 0xbe, 0xef}),
 			wantErr:  false,
 		},
 		{
 			name:     "uppercase hex",
 			input:    "DEADBEEF",
-			expected: HexString([]byte{0xde, 0xad, 0xbe, 0xef}),
+			expected: String([]byte{0xde, 0xad, 0xbe, 0xef}),
 			wantErr:  false,
 		},
 		{
@@ -127,7 +127,7 @@ func TestHexString_UnmarshalText(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var h HexString
+			var h String
 			err := h.UnmarshalText([]byte(tt.input))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnmarshalText() error = %v, wantErr %v", err, tt.wantErr)
@@ -149,28 +149,28 @@ func TestHexString_UnmarshalText(t *testing.T) {
 	}
 }
 
-func TestHexString_MarshalJSON(t *testing.T) {
+func TestString_MarshalJSON(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    HexString
+		input    String
 		expected string
 		wantErr  bool
 	}{
 		{
 			name:     "empty hex string",
-			input:    HexString([]byte{}),
+			input:    String([]byte{}),
 			expected: `""`,
 			wantErr:  false,
 		},
 		{
 			name:     "simple hex string",
-			input:    HexString([]byte{0x01, 0x02, 0x03}),
+			input:    String([]byte{0x01, 0x02, 0x03}),
 			expected: `"010203"`,
 			wantErr:  false,
 		},
 		{
 			name:     "hex with letters",
-			input:    HexString([]byte{0xde, 0xad, 0xbe, 0xef}),
+			input:    String([]byte{0xde, 0xad, 0xbe, 0xef}),
 			expected: `"deadbeef"`,
 			wantErr:  false,
 		},
@@ -190,30 +190,30 @@ func TestHexString_MarshalJSON(t *testing.T) {
 	}
 }
 
-func TestHexString_UnmarshalJSON(t *testing.T) {
+func TestString_UnmarshalJSON(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected HexString
+		expected String
 		wantErr  bool
 		errType  error
 	}{
 		{
 			name:     "empty json string",
 			input:    `""`,
-			expected: HexString([]byte{}),
+			expected: String([]byte{}),
 			wantErr:  false,
 		},
 		{
 			name:     "valid json hex string",
 			input:    `"010203"`,
-			expected: HexString([]byte{0x01, 0x02, 0x03}),
+			expected: String([]byte{0x01, 0x02, 0x03}),
 			wantErr:  false,
 		},
 		{
 			name:     "valid json hex with letters",
 			input:    `"deadbeef"`,
-			expected: HexString([]byte{0xde, 0xad, 0xbe, 0xef}),
+			expected: String([]byte{0xde, 0xad, 0xbe, 0xef}),
 			wantErr:  false,
 		},
 		{
@@ -261,7 +261,7 @@ func TestHexString_UnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var h HexString
+			var h String
 			err := h.UnmarshalJSON([]byte(tt.input))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnmarshalJSON() error = %v, wantErr %v", err, tt.wantErr)
@@ -288,22 +288,22 @@ func TestHexString_UnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestHexString_JSONRoundTrip(t *testing.T) {
+func TestString_JSONRoundTrip(t *testing.T) {
 	tests := []struct {
 		name  string
-		input HexString
+		input String
 	}{
 		{
 			name:  "empty",
-			input: HexString([]byte{}),
+			input: String([]byte{}),
 		},
 		{
 			name:  "simple bytes",
-			input: HexString([]byte{0x01, 0x02, 0x03}),
+			input: String([]byte{0x01, 0x02, 0x03}),
 		},
 		{
 			name:  "complex bytes",
-			input: HexString([]byte{0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe}),
+			input: String([]byte{0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe}),
 		},
 	}
 
@@ -316,7 +316,7 @@ func TestHexString_JSONRoundTrip(t *testing.T) {
 			}
 
 			// Unmarshal
-			var result HexString
+			var result String
 			err = json.Unmarshal(marshaled, &result)
 			if err != nil {
 				t.Fatalf("Unmarshal() error = %v", err)
@@ -337,22 +337,22 @@ func TestHexString_JSONRoundTrip(t *testing.T) {
 	}
 }
 
-func TestHexString_TextRoundTrip(t *testing.T) {
+func TestString_TextRoundTrip(t *testing.T) {
 	tests := []struct {
 		name  string
-		input HexString
+		input String
 	}{
 		{
 			name:  "empty",
-			input: HexString([]byte{}),
+			input: String([]byte{}),
 		},
 		{
 			name:  "simple bytes",
-			input: HexString([]byte{0x01, 0x02, 0x03}),
+			input: String([]byte{0x01, 0x02, 0x03}),
 		},
 		{
 			name:  "complex bytes",
-			input: HexString([]byte{0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe}),
+			input: String([]byte{0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe}),
 		},
 	}
 
@@ -365,7 +365,7 @@ func TestHexString_TextRoundTrip(t *testing.T) {
 			}
 
 			// Unmarshal
-			var result HexString
+			var result String
 			err = result.UnmarshalText(marshaled)
 			if err != nil {
 				t.Fatalf("UnmarshalText() error = %v", err)
