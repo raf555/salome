@@ -13,6 +13,7 @@ import (
 type DynamicConfig struct {
 	FetchInterval time.Duration
 	FetchTimeout  time.Duration
+	ErrCallback   func(err error)
 }
 
 type DynamicConfigOption func(*DynamicConfig)
@@ -26,6 +27,12 @@ func WithDynamicFetchInterval(fetch time.Duration) DynamicConfigOption {
 func WithDynamicFetchTimeout(timeout time.Duration) DynamicConfigOption {
 	return func(dc *DynamicConfig) {
 		dc.FetchTimeout = timeout
+	}
+}
+
+func WithErrCallback(cb func(error)) DynamicConfigOption {
+	return func(dc *DynamicConfig) {
+		dc.ErrCallback = cb
 	}
 }
 
@@ -107,7 +114,9 @@ func (d *Dynamic) updateConfig() {
 
 	cfgMap, err := d.provider.FetchConfig(ctx)
 	if err != nil {
-		// TODO: log
+		if d.cfg.ErrCallback != nil {
+			d.cfg.ErrCallback(fmt.Errorf("updateConfig: d.provider.FetchConfig: %w", err))
+		}
 		return
 	}
 
@@ -122,7 +131,9 @@ func (d *Dynamic) updateConfig() {
 
 		err := loadConfigFromMapTo(context.TODO(), dst, cfgMap)
 		if err != nil {
-			// TODO: log
+			if d.cfg.ErrCallback != nil {
+				d.cfg.ErrCallback(fmt.Errorf("updateConfig: loadConfigFromMapTo: %w", err))
+			}
 			return true
 		}
 
