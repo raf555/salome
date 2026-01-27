@@ -61,7 +61,9 @@ func (c *ConfigProvider) readConfig() (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("os.Open: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	cfgs, err := godotenv.Parse(file)
 	if err != nil {

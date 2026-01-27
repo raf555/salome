@@ -14,6 +14,6 @@ type DynamicConfigManager interface {
 	// It may return nil if not found.
 	GetConfig(key any) any
 	// RegisterConfig registers a config to be dynamically updated.
-	// Factory must provide a pointer to zero config struct to be used for parsing configs..
+	// Factory must provide a pointer to zero config struct to be used for parsing configs.
 	RegisterConfig(key any, factory func() any) error
 }

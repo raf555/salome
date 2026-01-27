@@ -48,7 +48,7 @@ func (c *ConfigProvider) Config(ctx context.Context) (map[string]string, error) 
 func (c *ConfigProvider) FetchConfig(ctx context.Context) (map[string]string, error) {
 	osEnv, err := c.osCfgProvider.FetchConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("o.osCfgProvider.FetchConfig: %w", err)
+		return nil, fmt.Errorf("c.osCfgProvider.FetchConfig: %w", err)
 	}
 
 	out := maps.Clone(osEnv)
@@ -56,7 +56,7 @@ func (c *ConfigProvider) FetchConfig(ctx context.Context) (map[string]string, er
 	if c.dotenvCfgProvider != nil {
 		dotEnv, err := c.dotenvCfgProvider.FetchConfig(ctx)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) { // if file not present, omit error
-			return nil, fmt.Errorf("o.dotenvCfgProvider.FetchConfig: %w", err)
+			return nil, fmt.Errorf("c.dotenvCfgProvider.FetchConfig: %w", err)
 		}
 
 		maps.Copy(out, dotEnv)

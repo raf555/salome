@@ -13,7 +13,9 @@ import (
 type DynamicConfig struct {
 	FetchInterval time.Duration
 	FetchTimeout  time.Duration
-	ErrCallback   func(err error)
+	// ErrCallback will be called (if any) in case there is any error in the background process.
+	// It should not block for too long.
+	ErrCallback func(err error)
 }
 
 type DynamicConfigOption func(*DynamicConfig)
@@ -82,20 +84,6 @@ func NewDynamic(provider Provider, opts ...DynamicConfigOption) (*Dynamic, error
 	return d, nil
 }
 
-func (d *Dynamic) swapCurrentConfig(newCfg map[string]string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	d.currentCfg = newCfg
-}
-
-func (d *Dynamic) readCurrentConfig() map[string]string {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	return d.currentCfg
-}
-
 func (d *Dynamic) fetchConfigPeriodically() {
 	for {
 		select {
@@ -120,11 +108,14 @@ func (d *Dynamic) updateConfig() {
 		return
 	}
 
-	if maps.Equal(d.readCurrentConfig(), cfgMap) {
+	d.mu.Lock()
+	if maps.Equal(d.currentCfg, cfgMap) {
+		d.mu.Unlock()
 		return
 	}
 
-	d.swapCurrentConfig(cfgMap)
+	d.currentCfg = cfgMap
+	d.mu.Unlock()
 
 	d.configRegistry.Range(func(key any, value registrant[any]) bool {
 		dst := value.factory()
@@ -147,7 +138,11 @@ func (d *Dynamic) updateConfig() {
 func (d *Dynamic) RegisterConfig(key any, factory func() any) error {
 	dst := factory()
 
-	err := loadConfigFromMapTo(context.TODO(), dst, d.readCurrentConfig())
+	d.mu.RLock()
+	currentCfg := d.currentCfg
+	d.mu.RUnlock()
+
+	err := loadConfigFromMapTo(context.TODO(), dst, currentCfg)
 	if err != nil {
 		return fmt.Errorf("loadConfigFromMapTo: %w", err)
 	}
