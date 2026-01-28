@@ -2,6 +2,8 @@ package config
 
 import "context"
 
+//go:generate go tool mockgen -typed -source provider.go -destination configtest/mocks.gen.go -package configtest
+
 type Provider interface {
 	// Config provides a config that is initially read by the provider.
 	Config(ctx context.Context) (map[string]string, error)
@@ -16,4 +18,14 @@ type DynamicConfigManager interface {
 	// RegisterConfig registers a config to be dynamically updated.
 	// Factory must provide a pointer to zero config struct to be used for parsing configs.
 	RegisterConfig(key any, factory func() any) error
+}
+
+type DynamicConfigGetter[T any] interface {
+	Get() T
+}
+
+type getterFunc[T any] func() T
+
+func (f getterFunc[T]) Get() T {
+	return f()
 }

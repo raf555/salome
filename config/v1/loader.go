@@ -25,16 +25,6 @@ func LoadConfigTo[T any](provider Provider) (T, error) {
 	return dst, nil
 }
 
-type DynamicConfigGetter[T any] interface {
-	Get() T
-}
-
-type getterFunc[T any] func() T
-
-func (f getterFunc[T]) Get() T {
-	return f()
-}
-
 // LoadDynamicConfigTo loads dynamic config to T from the provider.
 // It is a syntactic sugar for mgr.RegisterConfig and GetConfig.
 // Config is updated periodically by the manager.

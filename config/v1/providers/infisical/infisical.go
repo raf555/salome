@@ -58,6 +58,7 @@ func (c *ConfigProvider) FetchConfig(_ context.Context) (map[string]string, erro
 	secrets, err := c.client.Secrets().List(infisical.ListSecretsOptions{
 		ProjectSlug: c.config.ProjectSlug,
 		Environment: c.config.Environment,
+		SecretPath:  c.config.ConfigPath,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("c.client.Secrets.List: %w", err)

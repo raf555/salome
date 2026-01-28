@@ -8,6 +8,7 @@ type Config struct {
 	ClientSecret string
 	ProjectSlug  string
 	Environment  string
+	ConfigPath   string
 
 	RetryConfig *infisical.RetryRequestsConfig
 }
