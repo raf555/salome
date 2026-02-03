@@ -60,8 +60,8 @@ func New(ctx context.Context, serviceName string) (Otel, error) {
 	}
 
 	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
 		metric.WithResource(res),
+		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
 	)
 	otel.SetMeterProvider(meterProvider)
 
