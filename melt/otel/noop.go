@@ -25,5 +25,5 @@ func (n NoopOpenTelemetry) TracerProvider() trace.TracerProvider {
 
 // Shutdown implements [OpenTelemetry].
 func (n NoopOpenTelemetry) Shutdown(ctx context.Context) error {
-	return ctx.Err()
+	return nil
 }

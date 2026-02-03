@@ -50,48 +50,49 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		),
 	)
 	if err != nil {
-		return Otel{}, fmt.Errorf("resource.New: %w", err)
+		return nil, fmt.Errorf("resource.New: %w", err)
 	}
 
 	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithCompressor("gzip"))
 	if err != nil {
-		return Otel{}, fmt.Errorf("otlptracegrpc.New: %w", err)
+		return nil, fmt.Errorf("otlptracegrpc.New: %w", err)
 	}
 
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithResource(res),
 		trace.WithBatcher(traceExporter),
 	)
-	otel.SetTracerProvider(tracerProvider)
 
 	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithCompressor("gzip"))
 	if err != nil {
-		return Otel{}, fmt.Errorf("otlpmetricgrpc.New: %w", err)
+		return nil, fmt.Errorf("otlpmetricgrpc.New: %w", err)
 	}
 
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
 		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
 	)
-	otel.SetMeterProvider(meterProvider)
 
 	propagator := propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	)
-	otel.SetTextMapPropagator(propagator)
 
 	// runtime metrics
 
 	err = otelhost.Start()
 	if err != nil {
-		return Otel{}, fmt.Errorf("otelhost.Start: %w", err)
+		return nil, fmt.Errorf("otelhost.Start: %w", err)
 	}
 
 	err = otelruntime.Start()
 	if err != nil {
-		return Otel{}, fmt.Errorf("otelruntime.Start: %w", err)
+		return nil, fmt.Errorf("otelruntime.Start: %w", err)
 	}
+
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetMeterProvider(meterProvider)
+	otel.SetTextMapPropagator(propagator)
 
 	return Otel{
 		meterProvider:  meterProvider,

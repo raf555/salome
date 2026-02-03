@@ -21,6 +21,12 @@ func FromContext(ctx context.Context) Tracer {
 }
 
 func SpanFromContext(ctx context.Context) Span {
+	otelspan := oteltrace.SpanFromContext(ctx)
+
+	if s, ok := otelspan.(*span); ok {
+		return s
+	}
+
 	return &span{
 		Span: oteltrace.SpanFromContext(ctx),
 	}
