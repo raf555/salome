@@ -75,12 +75,12 @@ func New(ctx context.Context, serviceName string) (Otel, error) {
 
 	err = otelhost.Start()
 	if err != nil {
-		return Otel{}, fmt.Errorf("otelHost.Start: %w", err)
+		return Otel{}, fmt.Errorf("otelhost.Start: %w", err)
 	}
 
 	err = otelruntime.Start()
 	if err != nil {
-		return Otel{}, fmt.Errorf("otelRuntime.Start: %w", err)
+		return Otel{}, fmt.Errorf("otelruntime.Start: %w", err)
 	}
 
 	return Otel{

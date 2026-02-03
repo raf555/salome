@@ -42,7 +42,7 @@ func (r *RecorderProvider) DefaultRecorder() MetricRecorder {
 	return r.defaultRecorder
 }
 
-func (r *RecorderProvider) CreateRecorder(prefix, name string, meter otelmetric.Meter) (MetricRecorder, error) {
+func (r *RecorderProvider) CreateRecorder(prefix, name string) (MetricRecorder, error) {
 	return newRecorder(r.svcName, prefix, name, r.defaultMeter)
 }
 

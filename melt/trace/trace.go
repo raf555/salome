@@ -49,8 +49,6 @@ func (t *Tracer) Start(ctx context.Context, spanName string, opts ...oteltrace.S
 
 type Span struct {
 	oteltrace.Span
-
-	errored bool
 }
 
 func (s *Span) RecordError(err error, opts ...oteltrace.EventOption) {
@@ -65,21 +63,13 @@ func (s *Span) RecordError(err error, opts ...oteltrace.EventOption) {
 	)
 	opts2 = append(opts2, opts...)
 
-	s.Span.SetStatus(codes.Error, err.Error())
+	s.SetStatus(codes.Error, err.Error())
 	s.Span.RecordError(err, opts2...)
-	s.errored = true
 }
 
 func (s *Span) End(opts ...oteltrace.SpanEndOption) {
-	opts2 := make([]oteltrace.SpanEndOption, 0, len(opts)+2)
-	opts2 = append(opts2,
-		oteltrace.WithTimestamp(time.Now()),
-		oteltrace.WithStackTrace(true),
-	)
+	opts2 := make([]oteltrace.SpanEndOption, 0, len(opts)+1)
+	opts2 = append(opts2, oteltrace.WithTimestamp(time.Now()))
 	opts2 = append(opts2, opts...)
-
-	if !s.errored {
-		s.Span.SetStatus(codes.Ok, "Ok")
-	}
 	s.Span.End(opts2...)
 }
