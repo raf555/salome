@@ -2,24 +2,28 @@ package otel
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 
 	otelhost "go.opentelemetry.io/contrib/instrumentation/host"
 	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
 type Otel struct {
-	MeterProvider  *metric.MeterProvider
-	TracerProvider *trace.TracerProvider
+	meterProvider  *metric.MeterProvider
+	tracerProvider *trace.TracerProvider
 }
 
 // New bootstraps initialization of tracer and metric
@@ -28,8 +32,14 @@ type Otel struct {
 // It also sets default tracer and metric.
 //
 // New also initiates a couple of metrics, such as runtime metrics.
-func New(ctx context.Context, serviceName string) (Otel, error) {
+//
+// New detects environment variable of `OTEL_EXPORTER_OTLP_ENDPOINT`. If it's not present, New returns [NoopOpenTelemetry].
+func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 	// TODO: leverage options
+
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		return NoopOpenTelemetry{}, nil
+	}
 
 	res, err := resource.New(
 		ctx,
@@ -84,7 +94,28 @@ func New(ctx context.Context, serviceName string) (Otel, error) {
 	}
 
 	return Otel{
-		MeterProvider:  meterProvider,
-		TracerProvider: tracerProvider,
+		meterProvider:  meterProvider,
+		tracerProvider: tracerProvider,
 	}, nil
+}
+
+func (o Otel) Shutdown(ctx context.Context) error {
+	var errs []error
+
+	if err := o.meterProvider.Shutdown(ctx); err != nil {
+		errs = append(errs, err)
+	}
+	if err := o.tracerProvider.Shutdown(ctx); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+func (o Otel) TracerProvider() oteltrace.TracerProvider {
+	return o.tracerProvider
+}
+
+func (o Otel) MeterProvider() otelmetric.MeterProvider {
+	return o.meterProvider
 }

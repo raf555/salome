@@ -5,24 +5,19 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type TracerProvider struct {
 	svcName string
-	tp      *trace.TracerProvider
+	tp      oteltrace.TracerProvider
 }
 
-func New(serviceName string, tracer *trace.TracerProvider) *TracerProvider {
+func New(serviceName string, tracer oteltrace.TracerProvider) *TracerProvider {
 	return &TracerProvider{
 		svcName: serviceName,
 		tp:      tracer,
 	}
-}
-
-func (t *TracerProvider) Shutdown(ctx context.Context) error {
-	return t.tp.Shutdown(ctx)
 }
 
 func (t *TracerProvider) Tracer(opts ...oteltrace.TracerOption) oteltrace.Tracer {

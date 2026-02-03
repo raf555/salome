@@ -7,17 +7,16 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/metric"
 )
 
 type RecorderProvider struct {
 	svcName         string
-	mp              *metric.MeterProvider
+	mp              otelmetric.MeterProvider
 	defaultMeter    otelmetric.Meter
 	defaultRecorder *Recorder
 }
 
-func New(serviceName string, provider *metric.MeterProvider) (*RecorderProvider, error) {
+func New(serviceName string, provider otelmetric.MeterProvider) (*RecorderProvider, error) {
 	defaultMeter := provider.Meter(serviceName)
 	defaultRecorder, err := newRecorder(serviceName, "salome", "default", defaultMeter)
 	if err != nil {
@@ -32,10 +31,6 @@ func New(serviceName string, provider *metric.MeterProvider) (*RecorderProvider,
 	}
 
 	return rp, nil
-}
-
-func (r *RecorderProvider) Shutdown(ctx context.Context) error {
-	return r.mp.Shutdown(ctx)
 }
 
 func (r *RecorderProvider) DefaultRecorder() MetricRecorder {
