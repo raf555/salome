@@ -17,7 +17,9 @@ func FromContext(ctx context.Context) Tracer {
 	if tracer, ok := ctx.Value(ctxKey{}).(Tracer); ok {
 		return tracer
 	}
-	return noop.Tracer{}
+	return &tracer{
+		Tracer: noop.Tracer{},
+	}
 }
 
 func SpanFromContext(ctx context.Context) Span {
@@ -28,6 +30,6 @@ func SpanFromContext(ctx context.Context) Span {
 	}
 
 	return &span{
-		Span: oteltrace.SpanFromContext(ctx),
+		Span: otelspan,
 	}
 }

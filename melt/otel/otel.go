@@ -78,6 +78,10 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		propagation.Baggage{},
 	)
 
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetMeterProvider(meterProvider)
+	otel.SetTextMapPropagator(propagator)
+
 	// runtime metrics
 
 	err = otelhost.Start()
@@ -89,10 +93,6 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("otelruntime.Start: %w", err)
 	}
-
-	otel.SetTracerProvider(tracerProvider)
-	otel.SetMeterProvider(meterProvider)
-	otel.SetTextMapPropagator(propagator)
 
 	return Otel{
 		meterProvider:  meterProvider,
