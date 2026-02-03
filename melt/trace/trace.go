@@ -20,33 +20,33 @@ func New(serviceName string, tracer oteltrace.TracerProvider) *TracerProvider {
 	}
 }
 
-func (t *TracerProvider) Tracer(opts ...oteltrace.TracerOption) oteltrace.Tracer {
-	tracer := t.tp.Tracer(t.svcName, opts...)
-	return &Tracer{Tracer: tracer}
+func (t *TracerProvider) Tracer(opts ...oteltrace.TracerOption) Tracer {
+	traceStarter := t.tp.Tracer(t.svcName, opts...)
+	return &tracer{Tracer: traceStarter}
 }
 
-type Tracer struct {
-	oteltrace.Tracer
+type tracer struct {
+	Tracer
 }
 
-var _ oteltrace.Tracer = (*Tracer)(nil)
+var _ oteltrace.Tracer = (*tracer)(nil)
 
-func (t *Tracer) Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, oteltrace.Span) {
+func (t *tracer) Start(ctx context.Context, spanName string, opts ...oteltrace.SpanStartOption) (context.Context, Span) {
 	opts2 := make([]oteltrace.SpanStartOption, 0, len(opts)+1)
 	opts2 = append(opts2, oteltrace.WithTimestamp(time.Now()))
 	opts2 = append(opts2, opts...)
 
-	ctx, span := t.Tracer.Start(ctx, spanName, opts2...)
-	return ctx, &Span{
-		Span: span,
+	ctx, otelspan := t.Tracer.Start(ctx, spanName, opts2...)
+	return ctx, &span{
+		Span: otelspan,
 	}
 }
 
-type Span struct {
-	oteltrace.Span
+type span struct {
+	Span
 }
 
-func (s *Span) RecordError(err error, opts ...oteltrace.EventOption) {
+func (s *span) RecordError(err error, opts ...oteltrace.EventOption) {
 	if err == nil {
 		return
 	}
@@ -62,7 +62,7 @@ func (s *Span) RecordError(err error, opts ...oteltrace.EventOption) {
 	s.Span.RecordError(err, opts2...)
 }
 
-func (s *Span) End(opts ...oteltrace.SpanEndOption) {
+func (s *span) End(opts ...oteltrace.SpanEndOption) {
 	opts2 := make([]oteltrace.SpanEndOption, 0, len(opts)+1)
 	opts2 = append(opts2, oteltrace.WithTimestamp(time.Now()))
 	opts2 = append(opts2, opts...)
