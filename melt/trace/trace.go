@@ -37,9 +37,12 @@ func (t *tracer) Start(ctx context.Context, spanName string, opts ...oteltrace.S
 	opts2 = append(opts2, opts...)
 
 	ctx, otelspan := t.Tracer.Start(ctx, spanName, opts2...)
-	return ctx, &span{
+
+	osp := &span{
 		Span: otelspan,
 	}
+	ctx = oteltrace.ContextWithSpan(ctx, osp)
+	return ctx, osp
 }
 
 type span struct {

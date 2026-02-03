@@ -7,8 +7,8 @@ import (
 
 type ctxKey struct{}
 
-// SetContext attaches [slog.Logger] to the ctx.
-func SetContext(ctx context.Context, logger *slog.Logger) context.Context {
+// WithContext attaches [slog.Logger] to the ctx.
+func WithContext(ctx context.Context, logger *slog.Logger) context.Context {
 	return context.WithValue(ctx, ctxKey{}, logger)
 }
 
