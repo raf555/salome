@@ -7,20 +7,20 @@ import (
 
 type NoopRecorder struct{}
 
-var _ MetricRecorder = NoopRecorder{}
+var _ Recorder = NoopRecorder{}
 
-// Count implements [MetricRecorder].
+// Count implements [Recorder].
 func (n NoopRecorder) Count(ctx context.Context, name string, value int64, opts ...RecordOption) {
 }
 
-// Duration implements [MetricRecorder].
+// Duration implements [Recorder].
 func (n NoopRecorder) Duration(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
 }
 
-// Gauge implements [MetricRecorder].
+// Gauge implements [Recorder].
 func (n NoopRecorder) Gauge(ctx context.Context, name string, value float64, opts ...RecordOption) {
 }
 
-// RecordOperation implements [MetricRecorder].
+// RecordOperation implements [Recorder].
 func (n NoopRecorder) RecordOperation(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
 }

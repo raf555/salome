@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type MetricRecorder interface {
+type Recorder interface {
 	Count(ctx context.Context, name string, value int64, opts ...RecordOption)
 	Duration(ctx context.Context, name string, duration time.Duration, opts ...RecordOption)
 	RecordOperation(ctx context.Context, name string, duration time.Duration, opts ...RecordOption)

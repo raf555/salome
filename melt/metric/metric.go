@@ -15,7 +15,7 @@ type RecorderProvider struct {
 	svcName         string
 	mp              otelmetric.MeterProvider
 	defaultMeter    otelmetric.Meter
-	defaultRecorder *Recorder
+	defaultRecorder *recorder
 }
 
 func New(serviceName string, provider otelmetric.MeterProvider) (*RecorderProvider, error) {
@@ -35,15 +35,15 @@ func New(serviceName string, provider otelmetric.MeterProvider) (*RecorderProvid
 	return rp, nil
 }
 
-func (r *RecorderProvider) DefaultRecorder() MetricRecorder {
+func (r *RecorderProvider) DefaultRecorder() Recorder {
 	return r.defaultRecorder
 }
 
-func (r *RecorderProvider) CreateRecorder(prefix, name string) (MetricRecorder, error) {
+func (r *RecorderProvider) CreateRecorder(prefix, name string) (Recorder, error) {
 	return newRecorder(r.svcName, prefix, name, r.defaultMeter)
 }
 
-type Recorder struct {
+type recorder struct {
 	counter  otelmetric.Int64Counter
 	duration otelmetric.Float64Histogram
 	gauge    otelmetric.Float64Gauge
@@ -51,7 +51,7 @@ type Recorder struct {
 	svcName string
 }
 
-func newRecorder(svcName, prefix, name string, meter otelmetric.Meter) (*Recorder, error) {
+func newRecorder(svcName, prefix, name string, meter otelmetric.Meter) (*recorder, error) {
 	counter, err := meter.Int64Counter(
 		fmt.Sprintf("%s_%s_counter_total", prefix, name),
 		otelmetric.WithDescription(name+" counter"),
@@ -77,7 +77,7 @@ func newRecorder(svcName, prefix, name string, meter otelmetric.Meter) (*Recorde
 		return nil, fmt.Errorf("meter.Float64Gauge: %w", err)
 	}
 
-	return &Recorder{
+	return &recorder{
 		counter:  counter,
 		duration: duration,
 		gauge:    gauge,
@@ -85,21 +85,21 @@ func newRecorder(svcName, prefix, name string, meter otelmetric.Meter) (*Recorde
 	}, nil
 }
 
-func (r *Recorder) Count(ctx context.Context, name string, value int64, opts ...RecordOption) {
+func (r *recorder) Count(ctx context.Context, name string, value int64, opts ...RecordOption) {
 	opt := buildOptions(opts...)
 	labels := r.buildLabels(name, opt.label)
 
 	r.counter.Add(ctx, value, otelmetric.WithAttributeSet(labels))
 }
 
-func (r *Recorder) Duration(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
+func (r *recorder) Duration(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
 	opt := buildOptions(opts...)
 	labels := r.buildLabels(name, opt.label)
 
 	r.duration.Record(ctx, float64(duration)/float64(time.Millisecond), otelmetric.WithAttributeSet(labels))
 }
 
-func (r *Recorder) RecordOperation(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
+func (r *recorder) RecordOperation(ctx context.Context, name string, duration time.Duration, opts ...RecordOption) {
 	opt := buildOptions(opts...)
 	labels := r.buildLabels(name, opt.label)
 
@@ -109,14 +109,14 @@ func (r *Recorder) RecordOperation(ctx context.Context, name string, duration ti
 		otelmetric.WithAttributeSet(labels))
 }
 
-func (r *Recorder) Gauge(ctx context.Context, name string, value float64, opts ...RecordOption) {
+func (r *recorder) Gauge(ctx context.Context, name string, value float64, opts ...RecordOption) {
 	opt := buildOptions(opts...)
 	labels := r.buildLabels(name, opt.label)
 
 	r.gauge.Record(ctx, value, otelmetric.WithAttributeSet(labels))
 }
 
-func (r *Recorder) buildLabels(operation string, label Labeler) attribute.Set {
+func (r *recorder) buildLabels(operation string, label Labeler) attribute.Set {
 	if label == nil {
 		label = NoLabel{}
 	}
