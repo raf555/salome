@@ -7,6 +7,9 @@ import (
 	"os"
 	"time"
 
+	"go.opentelemetry.io/contrib/detectors/autodetect"
+	otelhost "go.opentelemetry.io/contrib/instrumentation/host"
+	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -17,9 +20,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
-
-	otelhost "go.opentelemetry.io/contrib/instrumentation/host"
-	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
 type Otel struct {
@@ -42,8 +42,14 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		return NoopOpenTelemetry{}, nil
 	}
 
+	detectors, err := autodetect.Detector(autodetect.Registered()...)
+	if err != nil {
+		return nil, fmt.Errorf("autodetect.Detector: %w", err)
+	}
+
 	res, err := resource.New(
 		ctx,
+		resource.WithDetectors(detectors),
 		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
