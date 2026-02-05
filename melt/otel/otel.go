@@ -44,9 +44,7 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 	res, err := resource.New(
 		ctx,
 		resource.WithHost(),
-		resource.WithHostID(),
 		resource.WithContainer(),
-		resource.WithContainerID(),
 		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
