@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"go.opentelemetry.io/contrib/detectors/autodetect"
 	otelhost "go.opentelemetry.io/contrib/instrumentation/host"
 	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
@@ -42,14 +41,12 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		return NoopOpenTelemetry{}, nil
 	}
 
-	detectors, err := autodetect.Detector(autodetect.Registered()...)
-	if err != nil {
-		return nil, fmt.Errorf("autodetect.Detector: %w", err)
-	}
-
 	res, err := resource.New(
 		ctx,
-		resource.WithDetectors(detectors),
+		resource.WithHost(),
+		resource.WithHostID(),
+		resource.WithContainer(),
+		resource.WithContainerID(),
 		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
