@@ -20,7 +20,7 @@ type RecorderProvider struct {
 
 func New(serviceName string, provider otelmetric.MeterProvider) (*RecorderProvider, error) {
 	defaultMeter := provider.Meter(serviceName)
-	defaultRecorder, err := newRecorder(serviceName, DefaultMetricPrefix, "default", defaultMeter)
+	defaultRecorder, err := newRecorder(serviceName, DefaultMetricPrefix, "general", defaultMeter)
 	if err != nil {
 		return nil, fmt.Errorf("newRecorder: %w", err)
 	}
