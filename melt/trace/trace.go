@@ -49,6 +49,8 @@ type span struct {
 	Span
 }
 
+var _ oteltrace.Span = (*span)(nil)
+
 func (s *span) RecordError(err error, opts ...oteltrace.EventOption) {
 	if err == nil {
 		return

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -68,9 +69,14 @@ func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		return nil, fmt.Errorf("otlpmetricgrpc.New: %w", err)
 	}
 
+	var periodicReaderOptions []metric.PeriodicReaderOption
+	if os.Getenv("OTEL_METRIC_EXPORT_INTERVAL") == "" { // use 10s for default to avoid large batch size on each export
+		periodicReaderOptions = append(periodicReaderOptions, metric.WithInterval(10*time.Second))
+	}
+
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
-		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
+		metric.WithReader(metric.NewPeriodicReader(metricExporter, periodicReaderOptions...)),
 	)
 
 	propagator := propagation.NewCompositeTextMapPropagator(
