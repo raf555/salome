@@ -29,7 +29,9 @@ func LoadConfigTo[T any](provider Provider) (T, error) {
 // It is a syntactic sugar for mgr.RegisterConfig and GetConfig.
 // Config is updated periodically by the manager.
 func LoadDynamicConfigTo[T any](mgr DynamicConfigManager) (DynamicConfigGetter[T], error) {
-	var key T
+	var t T
+	key := &t
+
 	if err := mgr.RegisterConfig(key, func() any {
 		var zero T
 		return &zero

@@ -41,10 +41,10 @@ func TestLoadDynamicConfigTo(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		dynamicMock := configtest.NewMockDynamicConfigManager(ctrl)
 
-		dynamicMock.EXPECT().RegisterConfig(Config{}, gomock.AssignableToTypeOf(func() any { return nil })).Return(nil)
+		dynamicMock.EXPECT().RegisterConfig(gomock.AssignableToTypeOf(&Config{}), gomock.AssignableToTypeOf(func() any { return nil })).Return(nil)
 
-		dynamicMock.EXPECT().GetConfig(Config{}).Return(&Config{Test: "123"}) // 1st call
-		dynamicMock.EXPECT().GetConfig(Config{}).Return(&Config{Test: "456"}) // 2nd call
+		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "123"}) // 1st call
+		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "456"}) // 2nd call
 
 		conf, err := config.LoadDynamicConfigTo[Config](dynamicMock)
 		if err != nil {
