@@ -43,10 +43,10 @@ func NewWithOptions(siteURL string, secretCfg SecretConfig, options ...Option) (
 		CacheExpiryInSeconds: 0, // no cache
 	})
 
-	_, err := opts.auther.credentialProvider(client.Auth())
+	_, err := opts.authenticator.credentialProvider(client.Auth())
 	if err != nil {
 		cancel()
-		return nil, fmt.Errorf("opts.auther.credentialProvider: %w", err)
+		return nil, fmt.Errorf("opts.authenticator.credentialProvider: %w", err)
 	}
 
 	provider := ConfigProvider{

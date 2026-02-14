@@ -13,19 +13,19 @@ type universalAuth struct {
 
 var _ authenticator = (*universalAuth)(nil)
 
-// credentialProvider implements [auther].
+// credentialProvider implements [authenticator].
 func (u *universalAuth) credentialProvider(auth infisical.AuthInterface) (infisical.MachineIdentityCredential, error) {
 	return auth.UniversalAuthLogin(u.clientID, u.clientSecret)
 }
 
 type k8sAuth struct {
-	identityId string
+	identityID string
 	tokenPath  string
 }
 
 var _ authenticator = (*k8sAuth)(nil)
 
-// credentialProvider implements [auther].
+// credentialProvider implements [authenticator].
 func (k *k8sAuth) credentialProvider(auth infisical.AuthInterface) (infisical.MachineIdentityCredential, error) {
-	return auth.KubernetesAuthLogin(k.identityId, k.tokenPath)
+	return auth.KubernetesAuthLogin(k.identityID, k.tokenPath)
 }
