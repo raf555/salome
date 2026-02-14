@@ -26,15 +26,15 @@ type Otel struct {
 	tracerProvider *trace.TracerProvider
 }
 
-// New bootstraps initialization of tracer and metric
+// NewOrNoop bootstraps initialization of OpenTelemetry tracer and metric
 // with [go.opentelemetry.io/otel/sdk/metric.MeterProvider] and [go.opentelemetry.io/otel/sdk/trace.TracerProvider].
 //
 // It also sets default tracer and metric.
 //
-// New also initiates a couple of metrics, such as runtime metrics.
+// NewOrNoop also initiates a couple of metrics, such as runtime metrics.
 //
-// New detects environment variable of `OTEL_EXPORTER_OTLP_ENDPOINT`. If it's not present, New returns [NoopOpenTelemetry].
-func New(ctx context.Context, serviceName string) (OpenTelemetry, error) {
+// NewOrNoop detects environment variable of `OTEL_EXPORTER_OTLP_ENDPOINT`. If it's not present, NewOrNoop returns [NoopOpenTelemetry].
+func NewOrNoop(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 	// TODO: leverage options
 
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
