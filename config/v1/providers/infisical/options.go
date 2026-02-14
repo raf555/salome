@@ -3,7 +3,7 @@ package infisical
 import infisical "github.com/infisical/go-sdk"
 
 type options struct {
-	auther      auther
+	auther      authenticator
 	retryConfig *infisical.RetryRequestsConfig
 }
 

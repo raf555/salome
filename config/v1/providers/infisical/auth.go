@@ -2,7 +2,7 @@ package infisical
 
 import infisical "github.com/infisical/go-sdk"
 
-type auther interface {
+type authenticator interface {
 	credentialProvider(auth infisical.AuthInterface) (infisical.MachineIdentityCredential, error)
 }
 
@@ -11,7 +11,7 @@ type universalAuth struct {
 	clientSecret string
 }
 
-var _ auther = (*universalAuth)(nil)
+var _ authenticator = (*universalAuth)(nil)
 
 // credentialProvider implements [auther].
 func (u *universalAuth) credentialProvider(auth infisical.AuthInterface) (infisical.MachineIdentityCredential, error) {
@@ -23,7 +23,7 @@ type k8sAuth struct {
 	tokenPath  string
 }
 
-var _ auther = (*k8sAuth)(nil)
+var _ authenticator = (*k8sAuth)(nil)
 
 // credentialProvider implements [auther].
 func (k *k8sAuth) credentialProvider(auth infisical.AuthInterface) (infisical.MachineIdentityCredential, error) {
