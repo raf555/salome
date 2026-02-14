@@ -12,3 +12,9 @@ type Config struct {
 
 	RetryConfig *infisical.RetryRequestsConfig
 }
+
+type SecretConfig struct {
+	ProjectSlug string
+	Environment string
+	ConfigPath  string
+}
