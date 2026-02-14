@@ -9,32 +9,50 @@ import (
 )
 
 type ConfigProvider struct {
-	client  infisical.InfisicalClientInterface
-	config  Config
-	cancel  context.CancelFunc
-	initial map[string]string
+	secretConfig SecretConfig
+	client       infisical.InfisicalClientInterface
+	cancel       context.CancelFunc
+	initial      map[string]string
 }
 
 func New(config Config) (*ConfigProvider, error) {
+	opts := []Option{
+		WithUniversalAuth(config.ClientID, config.ClientSecret),
+	}
+
+	if config.RetryConfig != nil {
+		opts = append(opts, WithRetryConfig(*config.RetryConfig))
+	}
+
+	return NewWithOptions(config.SiteUrl, SecretConfig{
+		ProjectSlug: config.ProjectSlug,
+		Environment: config.Environment,
+		ConfigPath:  config.ConfigPath,
+	}, opts...)
+}
+
+func NewWithOptions(siteURL string, secretCfg SecretConfig, options ...Option) (*ConfigProvider, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
+	opts := resolveOptions(options...)
+
 	client := infisical.NewInfisicalClient(ctx, infisical.Config{
-		SiteUrl:              config.SiteUrl,
+		SiteUrl:              siteURL,
 		AutoTokenRefresh:     true,
-		RetryRequestsConfig:  config.RetryConfig,
+		RetryRequestsConfig:  opts.retryConfig,
 		CacheExpiryInSeconds: 0, // no cache
 	})
 
-	_, err := client.Auth().UniversalAuthLogin(config.ClientID, config.ClientSecret)
+	_, err := opts.auther.credentialProvider(client.Auth())
 	if err != nil {
 		cancel()
-		return nil, fmt.Errorf("client.Auth.UniversalAuthLogin: %w", err)
+		return nil, fmt.Errorf("opts.auther.credentialProvider: %w", err)
 	}
 
 	provider := ConfigProvider{
-		client: client,
-		cancel: cancel,
-		config: config,
+		client:       client,
+		cancel:       cancel,
+		secretConfig: secretCfg,
 	}
 
 	provider.initial, err = provider.FetchConfig(context.TODO())
@@ -56,9 +74,9 @@ func (c *ConfigProvider) Config(_ context.Context) (map[string]string, error) {
 
 func (c *ConfigProvider) FetchConfig(_ context.Context) (map[string]string, error) {
 	secrets, err := c.client.Secrets().List(infisical.ListSecretsOptions{
-		ProjectSlug: c.config.ProjectSlug,
-		Environment: c.config.Environment,
-		SecretPath:  c.config.ConfigPath,
+		ProjectSlug: c.secretConfig.ProjectSlug,
+		Environment: c.secretConfig.Environment,
+		SecretPath:  c.secretConfig.ConfigPath,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("c.client.Secrets.List: %w", err)
