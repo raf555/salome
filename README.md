@@ -13,7 +13,8 @@ go get github.com/raf555/salome@latest
 ## Future Roadmap
 
 1. Make each package as separate module.
-2. ...
+2. More documentation/comments/test
+3. ...
 
 ## Disclaimer
 
