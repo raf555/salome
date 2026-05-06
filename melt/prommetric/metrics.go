@@ -13,6 +13,8 @@ type Metrics[T Label] struct {
 	duration *prometheus.HistogramVec
 }
 
+var _ Recorder[*NoLabel] = (*Metrics[*NoLabel])(nil)
+
 func New[T Label](prefix, name string, opts ...Option) Recorder[T] {
 	o := &options{
 		buckets:    prometheus.DefBuckets,
@@ -119,3 +121,30 @@ func (g *gauge) Add(val float64) { g.g.Add(val) }
 
 // Sub implements [Gauge].
 func (g *gauge) Sub(val float64) { g.g.Sub(val) }
+
+type MetricsNoLabel struct {
+	m Recorder[*NoLabel]
+}
+
+var _ RecorderNoLabel = (*MetricsNoLabel)(nil)
+
+func NewNoLabel(prefix, name string, opts ...Option) RecorderNoLabel {
+	return &MetricsNoLabel{
+		m: New[*NoLabel](prefix, name, opts...),
+	}
+}
+
+// Count implements [RecorderNoLabel].
+func (m *MetricsNoLabel) Count() Counter {
+	return m.m.Count(nil)
+}
+
+// Duration implements [RecorderNoLabel].
+func (m *MetricsNoLabel) Duration() DurationObserver {
+	return m.m.Duration(nil)
+}
+
+// Gauge implements [RecorderNoLabel].
+func (m *MetricsNoLabel) Gauge() Gauge {
+	return m.m.Gauge(nil)
+}

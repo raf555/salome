@@ -10,6 +10,12 @@ type Recorder[T Label] interface {
 	Gauge(label T) Gauge
 }
 
+type RecorderNoLabel interface {
+	Count() Counter
+	Duration() DurationObserver
+	Gauge() Gauge
+}
+
 type Counter interface {
 	Inc()
 	Add(val float64)
