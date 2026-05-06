@@ -7,144 +7,116 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type MetricsNoLabel struct {
-	m RecorderWithLabel[*NoLabel]
+// CounterMetrics is a labeled Prometheus counter vec.
+type CounterMetrics[T Label] struct {
+	vec *prometheus.CounterVec
 }
 
-var _ Recorder = (*MetricsNoLabel)(nil)
-
-func New(prefix, name string, opts ...Option) Recorder {
-	return &MetricsNoLabel{
-		m: NewWithLabel[*NoLabel](prefix, name, opts...),
-	}
-}
-
-// Count implements [Recorder].
-func (m *MetricsNoLabel) Count() Counter {
-	return m.m.Count(nil)
-}
-
-// Duration implements [Recorder].
-func (m *MetricsNoLabel) Duration() DurationObserver {
-	return m.m.Duration(nil)
-}
-
-// Gauge implements [Recorder].
-func (m *MetricsNoLabel) Gauge() Gauge {
-	return m.m.Gauge(nil)
-}
-
-type Metrics[T Label] struct {
-	counter  *prometheus.CounterVec
-	gauge    *prometheus.GaugeVec
-	duration *prometheus.HistogramVec
-}
-
-var _ RecorderWithLabel[*NoLabel] = (*Metrics[*NoLabel])(nil)
-
-func NewWithLabel[T Label](prefix, name string, opts ...Option) RecorderWithLabel[T] {
-	o := &options{
-		buckets:    prometheus.DefBuckets,
-		registerer: prometheus.DefaultRegisterer,
-	}
+func NewCounterWithLabel[T Label](prefix, name string, opts ...CounterOption) CounterRecorder[T] {
+	o := &counterOptions{registerer: prometheus.DefaultRegisterer}
 	for _, opt := range opts {
 		opt(o)
 	}
-
-	var zeroLabel T
-	factory := promauto.With(o.registerer)
-
-	counter := factory.NewCounterVec(
+	var zero T
+	vec := promauto.With(o.registerer).NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: prefix,
 			Name:      name + "_total",
 			Help:      name + " counter",
 		},
-		zeroLabel.Labels(),
+		zero.Labels(),
 	)
+	return &CounterMetrics[T]{vec: vec}
+}
 
-	gauge := factory.NewGaugeVec(
+func (m *CounterMetrics[T]) Count(label T) Counter {
+	return &counter{m.vec.WithLabelValues(label.Values()...)}
+}
+
+// NewCounter returns a Counter with no labels.
+func NewCounter(prefix, name string, opts ...CounterOption) Counter {
+	return NewCounterWithLabel[*NoLabel](prefix, name, opts...).Count(nil)
+}
+
+// GaugeMetrics is a labeled Prometheus gauge vec.
+type GaugeMetrics[T Label] struct {
+	vec *prometheus.GaugeVec
+}
+
+func NewGaugeWithLabel[T Label](prefix, name string, opts ...GaugeOption) GaugeRecorder[T] {
+	o := &gaugeOptions{registerer: prometheus.DefaultRegisterer}
+	for _, opt := range opts {
+		opt(o)
+	}
+	var zero T
+	vec := promauto.With(o.registerer).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Subsystem: prefix,
 			Name:      name,
 			Help:      name + " gauge",
 		},
-		zeroLabel.Labels(),
+		zero.Labels(),
 	)
+	return &GaugeMetrics[T]{vec: vec}
+}
 
-	duration := factory.NewHistogramVec(
+func (m *GaugeMetrics[T]) Gauge(label T) Gauge {
+	return &gauge{m.vec.WithLabelValues(label.Values()...)}
+}
+
+// NewGauge returns a Gauge with no labels.
+func NewGauge(prefix, name string, opts ...GaugeOption) Gauge {
+	return NewGaugeWithLabel[*NoLabel](prefix, name, opts...).Gauge(nil)
+}
+
+// DurationMetrics is a labeled Prometheus histogram vec for durations.
+type DurationMetrics[T Label] struct {
+	vec *prometheus.HistogramVec
+}
+
+func NewDurationWithLabel[T Label](prefix, name string, opts ...DurationOption) DurationRecorder[T] {
+	o := &durationOptions{
+		registerer: prometheus.DefaultRegisterer,
+		buckets:    prometheus.DefBuckets,
+	}
+	for _, opt := range opts {
+		opt(o)
+	}
+	var zero T
+	vec := promauto.With(o.registerer).NewHistogramVec(
 		prometheus.HistogramOpts{
 			Subsystem: prefix,
 			Name:      name + "_duration_seconds",
 			Help:      name + " duration in seconds",
 			Buckets:   o.buckets,
 		},
-		zeroLabel.Labels(),
+		zero.Labels(),
 	)
-
-	return &Metrics[T]{
-		duration: duration,
-		gauge:    gauge,
-		counter:  counter,
-	}
+	return &DurationMetrics[T]{vec: vec}
 }
 
-// Count implements [RecorderWithLabel].
-func (m *Metrics[T]) Count(label T) Counter {
-	c := m.counter.WithLabelValues(label.Values()...)
-	return &counter{c}
+func (m *DurationMetrics[T]) Duration(label T) DurationObserver {
+	return &durationObserver{m.vec.WithLabelValues(label.Values()...)}
 }
 
-type counter struct {
-	c prometheus.Counter
+// NewDuration returns a DurationObserver with no labels.
+func NewDuration(prefix, name string, opts ...DurationOption) DurationObserver {
+	return NewDurationWithLabel[*NoLabel](prefix, name, opts...).Duration(nil)
 }
 
-// Add implements [Counter].
-func (c *counter) Add(val float64) {
-	c.c.Add(val)
-}
+type counter struct{ c prometheus.Counter }
 
-// Inc implements [Counter].
-func (c *counter) Inc() {
-	c.c.Inc()
-}
+func (c *counter) Add(val float64) { c.c.Add(val) }
+func (c *counter) Inc()            { c.c.Inc() }
 
-// Duration implements [RecorderWithLabel].
-func (m *Metrics[T]) Duration(label T) DurationObserver {
-	h := m.duration.WithLabelValues(label.Values()...)
-	return &durationObserver{h}
-}
+type durationObserver struct{ h prometheus.Observer }
 
-type durationObserver struct {
-	h prometheus.Observer
-}
+func (d *durationObserver) Observe(dur time.Duration) { d.h.Observe(dur.Seconds()) }
 
-// Observe implements [DurationObserver].
-func (d *durationObserver) Observe(dur time.Duration) {
-	d.h.Observe(dur.Seconds())
-}
+type gauge struct{ g prometheus.Gauge }
 
-// Gauge implements [RecorderWithLabel].
-func (m *Metrics[T]) Gauge(label T) Gauge {
-	g := m.gauge.WithLabelValues(label.Values()...)
-	return &gauge{g}
-}
-
-type gauge struct {
-	g prometheus.Gauge
-}
-
-// Set implements [Gauge].
 func (g *gauge) Set(val float64) { g.g.Set(val) }
-
-// Inc implements [Gauge].
-func (g *gauge) Inc() { g.g.Inc() }
-
-// Dec implements [Gauge].
-func (g *gauge) Dec() { g.g.Dec() }
-
-// Add implements [Gauge].
+func (g *gauge) Inc()            { g.g.Inc() }
+func (g *gauge) Dec()            { g.g.Dec() }
 func (g *gauge) Add(val float64) { g.g.Add(val) }
-
-// Sub implements [Gauge].
 func (g *gauge) Sub(val float64) { g.g.Sub(val) }

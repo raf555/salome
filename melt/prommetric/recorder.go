@@ -1,18 +1,17 @@
 package prommetric
 
-import (
-	"time"
-)
+import "time"
 
-type Recorder interface {
-	Count() Counter
-	Duration() DurationObserver
-	Gauge() Gauge
-}
-type RecorderWithLabel[T Label] interface {
+type CounterRecorder[T Label] interface {
 	Count(label T) Counter
-	Duration(label T) DurationObserver
+}
+
+type GaugeRecorder[T Label] interface {
 	Gauge(label T) Gauge
+}
+
+type DurationRecorder[T Label] interface {
+	Duration(label T) DurationObserver
 }
 
 type Counter interface {
