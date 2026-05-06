@@ -15,13 +15,13 @@ type Label interface {
 type NoLabel struct{}
 
 // Labels implements [Label].
-func (n NoLabel) Labels() []string {
+func (n *NoLabel) Labels() []string {
 	return nil
 }
 
 // Values implements [Label].
-func (n NoLabel) Values() []string {
+func (n *NoLabel) Values() []string {
 	return nil
 }
 
-var _ Label = NoLabel{}
+var _ Label = (*NoLabel)(nil)
