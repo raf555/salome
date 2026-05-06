@@ -11,3 +11,17 @@ type Label interface {
 	// The length is the same as returned by Labels.
 	Values() []string
 }
+
+type NoLabel struct{}
+
+// Labels implements [Label].
+func (n NoLabel) Labels() []string {
+	return nil
+}
+
+// Values implements [Label].
+func (n NoLabel) Values() []string {
+	return nil
+}
+
+var _ Label = NoLabel{}
