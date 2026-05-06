@@ -7,15 +7,42 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+type MetricsNoLabel struct {
+	m RecorderWithLabel[*NoLabel]
+}
+
+var _ Recorder = (*MetricsNoLabel)(nil)
+
+func New(prefix, name string, opts ...Option) Recorder {
+	return &MetricsNoLabel{
+		m: NewWithLabel[*NoLabel](prefix, name, opts...),
+	}
+}
+
+// Count implements [Recorder].
+func (m *MetricsNoLabel) Count() Counter {
+	return m.m.Count(nil)
+}
+
+// Duration implements [Recorder].
+func (m *MetricsNoLabel) Duration() DurationObserver {
+	return m.m.Duration(nil)
+}
+
+// Gauge implements [Recorder].
+func (m *MetricsNoLabel) Gauge() Gauge {
+	return m.m.Gauge(nil)
+}
+
 type Metrics[T Label] struct {
 	counter  *prometheus.CounterVec
 	gauge    *prometheus.GaugeVec
 	duration *prometheus.HistogramVec
 }
 
-var _ Recorder[*NoLabel] = (*Metrics[*NoLabel])(nil)
+var _ RecorderWithLabel[*NoLabel] = (*Metrics[*NoLabel])(nil)
 
-func New[T Label](prefix, name string, opts ...Option) Recorder[T] {
+func NewWithLabel[T Label](prefix, name string, opts ...Option) RecorderWithLabel[T] {
 	o := &options{
 		buckets:    prometheus.DefBuckets,
 		registerer: prometheus.DefaultRegisterer,
@@ -62,7 +89,7 @@ func New[T Label](prefix, name string, opts ...Option) Recorder[T] {
 	}
 }
 
-// Count implements [Recorder].
+// Count implements [RecorderWithLabel].
 func (m *Metrics[T]) Count(label T) Counter {
 	c := m.counter.WithLabelValues(label.Values()...)
 	return &counter{c}
@@ -82,7 +109,7 @@ func (c *counter) Inc() {
 	c.c.Inc()
 }
 
-// Duration implements [Recorder].
+// Duration implements [RecorderWithLabel].
 func (m *Metrics[T]) Duration(label T) DurationObserver {
 	h := m.duration.WithLabelValues(label.Values()...)
 	return &durationObserver{h}
@@ -97,7 +124,7 @@ func (d *durationObserver) Observe(dur time.Duration) {
 	d.h.Observe(dur.Seconds())
 }
 
-// Gauge implements [Recorder].
+// Gauge implements [RecorderWithLabel].
 func (m *Metrics[T]) Gauge(label T) Gauge {
 	g := m.gauge.WithLabelValues(label.Values()...)
 	return &gauge{g}
@@ -121,30 +148,3 @@ func (g *gauge) Add(val float64) { g.g.Add(val) }
 
 // Sub implements [Gauge].
 func (g *gauge) Sub(val float64) { g.g.Sub(val) }
-
-type MetricsNoLabel struct {
-	m Recorder[*NoLabel]
-}
-
-var _ RecorderNoLabel = (*MetricsNoLabel)(nil)
-
-func NewNoLabel(prefix, name string, opts ...Option) RecorderNoLabel {
-	return &MetricsNoLabel{
-		m: New[*NoLabel](prefix, name, opts...),
-	}
-}
-
-// Count implements [RecorderNoLabel].
-func (m *MetricsNoLabel) Count() Counter {
-	return m.m.Count(nil)
-}
-
-// Duration implements [RecorderNoLabel].
-func (m *MetricsNoLabel) Duration() DurationObserver {
-	return m.m.Duration(nil)
-}
-
-// Gauge implements [RecorderNoLabel].
-func (m *MetricsNoLabel) Gauge() Gauge {
-	return m.m.Gauge(nil)
-}

@@ -4,16 +4,15 @@ import (
 	"time"
 )
 
-type Recorder[T Label] interface {
-	Count(label T) Counter
-	Duration(label T) DurationObserver
-	Gauge(label T) Gauge
-}
-
-type RecorderNoLabel interface {
+type Recorder interface {
 	Count() Counter
 	Duration() DurationObserver
 	Gauge() Gauge
+}
+type RecorderWithLabel[T Label] interface {
+	Count(label T) Counter
+	Duration(label T) DurationObserver
+	Gauge(label T) Gauge
 }
 
 type Counter interface {
