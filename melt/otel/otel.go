@@ -17,7 +17,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -34,8 +33,11 @@ type Otel struct {
 // NewOrNoop also initiates a couple of metrics, such as runtime metrics.
 //
 // NewOrNoop detects environment variable of `OTEL_EXPORTER_OTLP_ENDPOINT`. If it's not present, NewOrNoop returns [NoopOpenTelemetry].
-func NewOrNoop(ctx context.Context, serviceName string) (OpenTelemetry, error) {
-	// TODO: leverage options
+func NewOrNoop(ctx context.Context, serviceName string, opts ...Option) (OpenTelemetry, error) {
+	cfg := &options{}
+	for _, o := range opts {
+		o(cfg)
+	}
 
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
 		return NoopOpenTelemetry{}, nil
@@ -47,9 +49,7 @@ func NewOrNoop(ctx context.Context, serviceName string) (OpenTelemetry, error) {
 		resource.WithContainer(),
 		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
-		resource.WithAttributes(
-			semconv.ServiceName(serviceName),
-		),
+		resource.WithAttributes(cfg.resourceAttributes(serviceName)...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("resource.New: %w", err)
