@@ -21,63 +21,83 @@ import (
 )
 
 type Otel struct {
-	meterProvider  *metric.MeterProvider
-	tracerProvider *trace.TracerProvider
+	meterProvider   *metric.MeterProvider
+	tracerProvider  *trace.TracerProvider
+	shutdownTimeout time.Duration
 }
 
 // NewOrNoop bootstraps initialization of OpenTelemetry tracer and metric
-// with [go.opentelemetry.io/otel/sdk/metric.MeterProvider] and [go.opentelemetry.io/otel/sdk/trace.TracerProvider].
+// with [go.opentelemetry.io/otel/sdk/metric.MeterProvider] and
+// [go.opentelemetry.io/otel/sdk/trace.TracerProvider].
 //
-// It also sets default tracer and metric.
+// It also sets the global tracer and meter providers and registers Go
+// runtime metrics.
 //
-// NewOrNoop also initiates a couple of metrics, such as runtime metrics.
-//
-// NewOrNoop detects environment variable of `OTEL_EXPORTER_OTLP_ENDPOINT`. If it's not present, NewOrNoop returns [NoopOpenTelemetry].
+// NewOrNoop checks for the OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
+// If unset, it returns NoopOpenTelemetry without doing anything else.
 func NewOrNoop(ctx context.Context, serviceName string, opts ...Option) (OpenTelemetry, error) {
-	cfg := &options{}
-	for _, o := range opts {
-		o(cfg)
-	}
-
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
 		return NoopOpenTelemetry{}, nil
 	}
 
+	cfg := newOptions(opts...)
+
+	if cfg.errorHandler != nil {
+		otel.SetErrorHandler(cfg.errorHandler)
+	}
+
 	res, err := resource.New(
 		ctx,
-		resource.WithHost(),
-		resource.WithContainer(),
-		resource.WithFromEnv(),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(cfg.resourceAttributes(serviceName)...),
+		resource.WithFromEnv(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("resource.New: %w", err)
 	}
 
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithCompressor("gzip"))
+	traceExporter, err := otlptracegrpc.New(
+		ctx,
+		otlptracegrpc.WithCompressor("gzip"),
+		otlptracegrpc.WithTimeout(cfg.traceExportTimeout),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("otlptracegrpc.New: %w", err)
 	}
 
+	sampler := trace.ParentBased(trace.TraceIDRatioBased(cfg.traceSampleRatio))
+
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithResource(res),
-		trace.WithBatcher(traceExporter),
+		trace.WithSampler(sampler),
+		trace.WithBatcher(
+			traceExporter,
+			trace.WithMaxQueueSize(cfg.traceMaxQueueSize),
+			trace.WithMaxExportBatchSize(cfg.traceMaxExportBatchSize),
+			trace.WithBatchTimeout(cfg.traceBatchTimeout),
+			trace.WithExportTimeout(cfg.traceExportTimeout),
+		),
 	)
 
-	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithCompressor("gzip"))
+	metricExporter, err := otlpmetricgrpc.New(
+		ctx,
+		otlpmetricgrpc.WithCompressor("gzip"),
+		otlpmetricgrpc.WithTimeout(cfg.metricExportTimeout),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("otlpmetricgrpc.New: %w", err)
 	}
 
-	var periodicReaderOptions []metric.PeriodicReaderOption
-	if os.Getenv("OTEL_METRIC_EXPORT_INTERVAL") == "" { // use 10s for default to avoid large batch size on each export
-		periodicReaderOptions = append(periodicReaderOptions, metric.WithInterval(10*time.Second))
-	}
+	periodicReader := metric.NewPeriodicReader(
+		metricExporter,
+		metric.WithInterval(cfg.metricExportInterval),
+		metric.WithTimeout(cfg.metricExportTimeout),
+		metric.WithProducer(otelruntime.NewProducer()),
+	)
 
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
-		metric.WithReader(metric.NewPeriodicReader(metricExporter, periodicReaderOptions...)),
+		metric.WithReader(periodicReader),
 	)
 
 	propagator := propagation.NewCompositeTextMapPropagator(
@@ -89,41 +109,41 @@ func NewOrNoop(ctx context.Context, serviceName string, opts ...Option) (OpenTel
 	otel.SetMeterProvider(meterProvider)
 	otel.SetTextMapPropagator(propagator)
 
-	// runtime metrics
-
-	err = otelhost.Start()
-	if err != nil {
+	if err := otelhost.Start(); err != nil {
+		_ = tracerProvider.Shutdown(ctx)
+		_ = meterProvider.Shutdown(ctx)
 		return nil, fmt.Errorf("otelhost.Start: %w", err)
 	}
 
-	err = otelruntime.Start()
-	if err != nil {
+	if err := otelruntime.Start(); err != nil {
+		_ = tracerProvider.Shutdown(ctx)
+		_ = meterProvider.Shutdown(ctx)
 		return nil, fmt.Errorf("otelruntime.Start: %w", err)
 	}
 
-	return Otel{
-		meterProvider:  meterProvider,
-		tracerProvider: tracerProvider,
+	return &Otel{
+		meterProvider:   meterProvider,
+		tracerProvider:  tracerProvider,
+		shutdownTimeout: cfg.shutdownTimeout,
 	}, nil
 }
 
-func (o Otel) Shutdown(ctx context.Context) error {
-	var errs []error
+// Shutdown flushes and stops the trace and metric pipelines. It applies the
+// configured shutdown timeout (default 30s) on top of the caller's context;
+// whichever deadline fires first wins. Errors from both pipelines are joined.
+func (o *Otel) Shutdown(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, o.shutdownTimeout)
+	defer cancel()
 
+	var errs []error
 	if err := o.meterProvider.Shutdown(ctx); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("meterProvider.Shutdown: %w", err))
 	}
 	if err := o.tracerProvider.Shutdown(ctx); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("tracerProvider.Shutdown: %w", err))
 	}
-
 	return errors.Join(errs...)
 }
 
-func (o Otel) TracerProvider() oteltrace.TracerProvider {
-	return o.tracerProvider
-}
-
-func (o Otel) MeterProvider() otelmetric.MeterProvider {
-	return o.meterProvider
-}
+func (o *Otel) TracerProvider() oteltrace.TracerProvider { return o.tracerProvider }
+func (o *Otel) MeterProvider() otelmetric.MeterProvider  { return o.meterProvider }
