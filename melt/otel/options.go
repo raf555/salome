@@ -3,6 +3,7 @@ package otel
 import (
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
@@ -29,6 +30,12 @@ type options struct {
 
 	// Error handling. If nil, the OTel global error handler is left untouched.
 	errorHandler otel.ErrorHandlerFunc
+
+	// Prometheus bridge. When enabled, a prometheus-bridge metric.Producer is
+	// registered on the periodic reader using promBridgeGatherer (nil means
+	// the prometheus DefaultGatherer).
+	promBridgeEnabled  bool
+	promBridgeGatherer promclient.Gatherer
 }
 
 // Option configures NewOrNoop behavior.
@@ -119,6 +126,56 @@ func WithShutdownTimeout(d time.Duration) Option {
 func WithErrorHandler(h otel.ErrorHandlerFunc) Option {
 	return func(o *options) {
 		o.errorHandler = h
+	}
+}
+
+// WithPrometheusMetricsBridge enables the OTel Prometheus bridge, which
+// gathers metrics from a [github.com/prometheus/client_golang/prometheus.Gatherer]
+// on every collection cycle and emits them through the OTLP pipeline alongside
+// the native OTel metrics.
+//
+// Pass nil to use [github.com/prometheus/client_golang/prometheus.DefaultGatherer]
+// (the global registry that
+// [github.com/prometheus/client_golang/prometheus.MustRegister] writes to).
+// Pass a specific Gatherer to bridge only a curated subset of metrics.
+//
+// Typical use case: surface the rich Go runtime metrics emitted by
+// [github.com/prometheus/client_golang/prometheus/collectors.NewGoCollector]
+// (with GoRuntimeMetricsCollection enabled) via OTLP, removing the need for
+// a separate Prometheus scrape pipeline.
+//
+// IMPORTANT — avoid double-counting:
+//
+// If your application also exposes a Prometheus scrape endpoint (commonly
+// /metrics on the main HTTP server, or a dedicated promhttp listener) AND
+// that endpoint is being scraped (by Prometheus, vmagent, the OTel
+// Collector's prometheus receiver, etc.) into the same backend that receives
+// your OTLP metrics, every metric in the bridged gatherer will arrive twice
+// — once via OTLP, once via scrape — with the same name. Pick one path:
+//
+//   - Bridge (this option) and remove the scrape configuration; or
+//   - Keep scraping and do NOT enable this option.
+//
+// If /metrics must stay up for other consumers (a local debugging probe, a
+// liveness check, etc.), use a non-default registry for the bridged metrics
+// and pass it explicitly here, keeping the bridged set disjoint from the
+// scraped set.
+//
+// Performance:
+//
+// The bridge calls Gatherer.Gather() on every metric export cycle (default
+// 10s). For a registry containing the full Go runtime collector this is
+// cheap in absolute terms but is not free — expect a small, steady increase
+// in CPU and memory footprint compared to running without the bridge. Per
+// the upstream docs, the bridge typically reduces overall footprint compared
+// to running a parallel Prometheus scrape pipeline to the same Collector,
+// since the scrape's HTTP serving and serialization cost is eliminated.
+//
+// See https://pkg.go.dev/go.opentelemetry.io/contrib/bridges/prometheus.
+func WithPrometheusMetricsBridge(gatherer promclient.Gatherer) Option {
+	return func(o *options) {
+		o.promBridgeEnabled = true
+		o.promBridgeGatherer = gatherer
 	}
 }
 

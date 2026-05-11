@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	prombridge "go.opentelemetry.io/contrib/bridges/prometheus"
 	otelhost "go.opentelemetry.io/contrib/instrumentation/host"
 	otelruntime "go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
@@ -88,12 +90,22 @@ func NewOrNoop(ctx context.Context, serviceName string, opts ...Option) (OpenTel
 		return nil, fmt.Errorf("otlpmetricgrpc.New: %w", err)
 	}
 
-	periodicReader := metric.NewPeriodicReader(
-		metricExporter,
+	readerOpts := []metric.PeriodicReaderOption{
 		metric.WithInterval(cfg.metricExportInterval),
 		metric.WithTimeout(cfg.metricExportTimeout),
 		metric.WithProducer(otelruntime.NewProducer()),
-	)
+	}
+	if cfg.promBridgeEnabled {
+		gatherer := cfg.promBridgeGatherer
+		if gatherer == nil {
+			gatherer = promclient.DefaultGatherer
+		}
+		readerOpts = append(readerOpts,
+			metric.WithProducer(prombridge.NewMetricProducer(prombridge.WithGatherer(gatherer))),
+		)
+	}
+
+	periodicReader := metric.NewPeriodicReader(metricExporter, readerOpts...)
 
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
