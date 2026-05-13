@@ -10,6 +10,7 @@ import (
 	"github.com/puzpuzpuz/xsync/v3"
 )
 
+// DynamicConfig holds configuration for a Dynamic instance.
 type DynamicConfig struct {
 	FetchInterval time.Duration
 	FetchTimeout  time.Duration
@@ -20,18 +21,24 @@ type DynamicConfig struct {
 
 type DynamicConfigOption func(*DynamicConfig)
 
+// WithDynamicFetchInterval sets how often the provider is polled for config changes.
+// Defaults to 10s.
 func WithDynamicFetchInterval(fetch time.Duration) DynamicConfigOption {
 	return func(dc *DynamicConfig) {
 		dc.FetchInterval = fetch
 	}
 }
 
+// WithDynamicFetchTimeout sets the timeout for each provider fetch call.
+// Defaults to 5s.
 func WithDynamicFetchTimeout(timeout time.Duration) DynamicConfigOption {
 	return func(dc *DynamicConfig) {
 		dc.FetchTimeout = timeout
 	}
 }
 
+// WithErrCallback registers a callback that is called whenever a background error occurs
+// (e.g. fetch failure, parse failure). The callback must not block for too long.
 func WithErrCallback(cb func(error)) DynamicConfigOption {
 	return func(dc *DynamicConfig) {
 		dc.ErrCallback = cb
@@ -41,8 +48,15 @@ func WithErrCallback(cb func(error)) DynamicConfigOption {
 type registrant[T any] struct {
 	factory    func() T
 	currentCfg T
+	callbacks  []func(any)
 }
 
+// Dynamic periodically fetches config from a Provider and keeps registered configs up to date.
+// Callers register a key+factory via RegisterConfig or RegisterConfigWithNotify, then read the
+// latest parsed value via GetConfig at any time.
+//
+// Deregistration is not supported as of now; registered configs are expected to live for the
+// lifetime of the Dynamic instance.
 type Dynamic struct {
 	mu sync.RWMutex
 
@@ -54,9 +68,12 @@ type Dynamic struct {
 
 	provider Provider
 
-	closeCh chan struct{}
+	closeOnce sync.Once
+	closeCh   chan struct{}
 }
 
+// NewDynamic creates a Dynamic and performs an initial config fetch from the provider.
+// Returns an error if the initial fetch fails.
 func NewDynamic(provider Provider, opts ...DynamicConfigOption) (*Dynamic, error) {
 	ctx := context.TODO()
 
@@ -85,11 +102,13 @@ func NewDynamic(provider Provider, opts ...DynamicConfigOption) (*Dynamic, error
 }
 
 func (d *Dynamic) fetchConfigPeriodically() {
+	ticker := time.NewTicker(d.cfg.FetchInterval)
+
 	for {
 		select {
 		case <-d.closeCh:
 			return
-		case <-time.Tick(d.cfg.FetchInterval):
+		case <-ticker.C:
 		}
 
 		d.updateConfig()
@@ -131,10 +150,18 @@ func (d *Dynamic) updateConfig() {
 		value.currentCfg = dst
 
 		d.configRegistry.Store(key, value)
+
+		for _, cb := range value.callbacks {
+			cb(dst)
+		}
+
 		return true
 	})
 }
 
+// RegisterConfig registers a key and factory for dynamic config updates.
+// Factory must return a pointer to a zero config struct used for parsing.
+// The parsed config is immediately available via GetConfig.
 func (d *Dynamic) RegisterConfig(key any, factory func() any) error {
 	dst := factory()
 
@@ -155,7 +182,42 @@ func (d *Dynamic) RegisterConfig(key any, factory func() any) error {
 	return nil
 }
 
-// GetConfig returns nil if config is not present
+// RegisterConfigWithNotify is like RegisterConfig but also returns a callback adder.
+// The adder can be called multiple times to register callbacks that are fired whenever
+// the config changes. Callbacks are called synchronously during the update cycle, so
+// they must not block for too long.
+func (d *Dynamic) RegisterConfigWithNotify(key any, factory func() any) (CallbackAdder, error) {
+	dst := factory()
+
+	d.mu.RLock()
+	currentCfg := d.currentCfg
+	d.mu.RUnlock()
+
+	err := loadConfigFromMapTo(context.TODO(), dst, currentCfg)
+	if err != nil {
+		return nil, fmt.Errorf("loadConfigFromMapTo: %w", err)
+	}
+
+	d.configRegistry.Store(key, registrant[any]{
+		factory:    factory,
+		currentCfg: dst,
+	})
+
+	adder := callbackAdderFunc(func(cb func(any)) {
+		d.configRegistry.Compute(key, func(oldValue registrant[any], loaded bool) (newValue registrant[any], delete bool) {
+			if !loaded {
+				return oldValue, true
+			}
+
+			oldValue.callbacks = append(oldValue.callbacks, cb)
+			return oldValue, false
+		})
+	})
+
+	return adder, nil
+}
+
+// GetConfig returns the latest parsed config for the given key, or nil if not registered.
 func (d *Dynamic) GetConfig(key any) any {
 	cfg, ok := d.configRegistry.Load(key)
 	if !ok {
@@ -164,11 +226,14 @@ func (d *Dynamic) GetConfig(key any) any {
 	return cfg.currentCfg
 }
 
+// Start begins the background polling loop. Must be called once after NewDynamic.
 func (d *Dynamic) Start() {
 	go d.fetchConfigPeriodically()
 }
 
-// Close panics if already closed,
+// Close stops the background polling loop. Safe to call multiple times.
 func (d *Dynamic) Close() {
-	close(d.closeCh)
+	d.closeOnce.Do(func() {
+		close(d.closeCh)
+	})
 }

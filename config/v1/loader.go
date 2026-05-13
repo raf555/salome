@@ -44,3 +44,24 @@ func LoadDynamicConfigTo[T any](mgr DynamicConfigManager) (DynamicConfigGetter[T
 		return *cfg
 	}), nil
 }
+
+// LoadDynamicConfigToWithNotify is like LoadDynamicConfigTo but also returns a typed callback adder.
+// The adder can be called to register callbacks that fire whenever the config changes.
+func LoadDynamicConfigToWithNotify[T any](mgr DynamicConfigManager) (DynamicConfigGetterWithNotify[T], error) {
+	var t T
+	key := &t
+
+	adder, err := mgr.RegisterConfigWithNotify(key, func() any {
+		var zero T
+		return &zero
+	})
+	if err != nil {
+		return nil, fmt.Errorf("mgr.RegisterConfigWithNotify: %w", err)
+	}
+
+	return &getterCallbackRegistrar[T]{
+		mgr:   mgr,
+		key:   key,
+		adder: adder,
+	}, nil
+}
