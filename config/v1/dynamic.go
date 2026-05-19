@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"reflect"
 	"sync"
 	"time"
 
@@ -147,12 +148,15 @@ func (d *Dynamic) updateConfig() {
 			return true
 		}
 
+		old := value.currentCfg
 		value.currentCfg = dst
 
 		d.configRegistry.Store(key, value)
 
-		for _, cb := range value.callbacks {
-			cb(dst)
+		if !reflect.DeepEqual(old, dst) {
+			for _, cb := range value.callbacks {
+				cb(dst)
+			}
 		}
 
 		return true
