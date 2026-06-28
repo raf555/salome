@@ -28,8 +28,8 @@ func processConfig(ctx context.Context, dst any, cfg map[string]string) error {
 	if err := envconfig.ProcessWith(ctx, &envconfig.Config{
 		Target: dst,
 		Lookuper: envconfig.MultiLookuper(
+			envconfig.OsLookuper(), // if env is specified, it takes precedence
 			envconfig.MapLookuper(cfg),
-			envconfig.OsLookuper(),
 		),
 	}); err != nil {
 		return fmt.Errorf("envconfig.Process: %w", err)
