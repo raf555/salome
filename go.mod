@@ -8,7 +8,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
-	github.com/remychantenay/slog-otel v1.3.4
+	github.com/remychantenay/slog-otel v1.3.5
 	github.com/samber/slog-formatter v1.2.2
 	github.com/sethvargo/go-envconfig v1.3.0
 	github.com/stretchr/testify v1.11.1
