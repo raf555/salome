@@ -38,7 +38,7 @@ func NewWithOptions(siteURL string, secretCfg SecretConfig, options ...Option) (
 
 	client := infisical.NewInfisicalClient(ctx, infisical.Config{
 		SiteUrl:              siteURL,
-		AutoTokenRefresh:     true,
+		AutoTokenRefresh:     new(true),
 		RetryRequestsConfig:  opts.retryConfig,
 		CacheExpiryInSeconds: 0, // no cache
 	})

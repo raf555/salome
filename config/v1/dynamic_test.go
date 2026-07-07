@@ -49,10 +49,10 @@ func TestDynamic(t *testing.T) {
 			}
 
 			var cb1Count atomic.Int32
-			var cb1LastValue Config1
+			var cb1LastValue atomic.Pointer[Config1]
 			adder.Add(func(v any) {
 				cb1Count.Add(1)
-				cb1LastValue = *v.(*Config1)
+				cb1LastValue.Store(v.(*Config1))
 			})
 
 			var cb2Count atomic.Int32
@@ -69,8 +69,8 @@ func TestDynamic(t *testing.T) {
 			if cb1Count.Load() != 1 {
 				t.Errorf("expecting 1 callback after update, got %d", cb1Count.Load())
 			}
-			if expected := (Config1{Test: "abc1"}); cb1LastValue != expected {
-				t.Errorf("expecting callback value %v, got %v", expected, cb1LastValue)
+			if expected := (Config1{Test: "abc1"}); *cb1LastValue.Load() != expected {
+				t.Errorf("expecting callback value %v, got %v", expected, cb1LastValue.Load())
 			}
 			if cb2Count.Load() != 1 {
 				t.Errorf("expecting 1 callback for second subscriber after update, got %d", cb2Count.Load())
