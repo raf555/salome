@@ -1,8 +1,10 @@
-package config
+package config_test
 
 import (
 	"testing"
 
+	config "github.com/raf555/salome/config/v1"
+	"github.com/raf555/salome/config/v1/providertest"
 	"go.uber.org/mock/gomock"
 )
 
@@ -13,13 +15,13 @@ func TestLoadConfigTo(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		providerMock := NewMockProvider(ctrl)
+		providerMock := providertest.NewMockProvider(ctrl)
 
 		providerMock.EXPECT().Config(gomock.Any()).Return(map[string]string{
 			"TEST": "123",
 		}, nil)
 
-		conf, err := LoadConfigTo[Config](providerMock)
+		conf, err := config.LoadConfigTo[Config](providerMock)
 		if err != nil {
 			t.Errorf("expecting nil error, got %v", err)
 		}
@@ -37,16 +39,16 @@ func TestLoadDynamicConfigToWithNotify(t *testing.T) {
 
 	t.Run("success - Get returns current config", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		dynamicMock := NewMockDynamicConfigManager(ctrl)
+		dynamicMock := providertest.NewMockDynamicConfigManager(ctrl)
 
 		dynamicMock.EXPECT().
 			RegisterConfigWithNotify(gomock.AssignableToTypeOf(&Config{}), gomock.AssignableToTypeOf(func() any { return nil })).
-			Return(callbackAdderFunc(func(func(any)) {}), nil)
+			Return(providertest.NewMockCallbackAdder(ctrl), nil)
 
 		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "123"})
 		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "456"})
 
-		conf, err := LoadDynamicConfigToWithNotify[Config](dynamicMock)
+		conf, err := config.LoadDynamicConfigToWithNotify[Config](dynamicMock)
 		if err != nil {
 			t.Errorf("expecting nil error, got %v", err)
 		}
@@ -64,14 +66,17 @@ func TestLoadDynamicConfigToWithNotify(t *testing.T) {
 
 	t.Run("success - RegisterCallback wraps and forwards to adder", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		dynamicMock := NewMockDynamicConfigManager(ctrl)
+		dynamicMock := providertest.NewMockDynamicConfigManager(ctrl)
 
 		var registeredRawCb func(any)
+		adderMock := providertest.NewMockCallbackAdder(ctrl)
+		adderMock.EXPECT().Add(gomock.Any()).Do(func(cb func(any)) { registeredRawCb = cb })
+
 		dynamicMock.EXPECT().
 			RegisterConfigWithNotify(gomock.AssignableToTypeOf(&Config{}), gomock.AssignableToTypeOf(func() any { return nil })).
-			Return(callbackAdderFunc(func(cb func(any)) { registeredRawCb = cb }), nil)
+			Return(adderMock, nil)
 
-		conf, err := LoadDynamicConfigToWithNotify[Config](dynamicMock)
+		conf, err := config.LoadDynamicConfigToWithNotify[Config](dynamicMock)
 		if err != nil {
 			t.Errorf("expecting nil error, got %v", err)
 		}
@@ -99,14 +104,14 @@ func TestLoadDynamicConfigTo(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		dynamicMock := NewMockDynamicConfigManager(ctrl)
+		dynamicMock := providertest.NewMockDynamicConfigManager(ctrl)
 
 		dynamicMock.EXPECT().RegisterConfig(gomock.AssignableToTypeOf(&Config{}), gomock.AssignableToTypeOf(func() any { return nil })).Return(nil)
 
 		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "123"})
 		dynamicMock.EXPECT().GetConfig(gomock.AssignableToTypeOf(&Config{})).Return(&Config{Test: "456"})
 
-		conf, err := LoadDynamicConfigTo[Config](dynamicMock)
+		conf, err := config.LoadDynamicConfigTo[Config](dynamicMock)
 		if err != nil {
 			t.Errorf("expecting nil error, got %v", err)
 		}

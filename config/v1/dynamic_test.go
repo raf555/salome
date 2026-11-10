@@ -1,4 +1,4 @@
-package config
+package config_test
 
 import (
 	"sync/atomic"
@@ -6,6 +6,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	config "github.com/raf555/salome/config/v1"
+	"github.com/raf555/salome/config/v1/providertest"
 	"go.uber.org/mock/gomock"
 )
 
@@ -21,7 +23,7 @@ func TestDynamic(t *testing.T) {
 	t.Run("E2E with notify - callbacks fired on change", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			providerMock := NewMockProvider(ctrl)
+			providerMock := providertest.NewMockProvider(ctrl)
 
 			providerMock.EXPECT().Config(gomock.Any()).Return(map[string]string{
 				"TEST1": "abc",
@@ -32,7 +34,7 @@ func TestDynamic(t *testing.T) {
 				"TEST2": "def1",
 			}, nil)
 
-			dynamic, err := NewDynamic(providerMock)
+			dynamic, err := config.NewDynamic(providerMock)
 			if err != nil {
 				t.Fatalf("expecting nil error when initializing dynamic, got %v", err)
 			}
@@ -81,7 +83,7 @@ func TestDynamic(t *testing.T) {
 	t.Run("E2E with notify - no callback when config unchanged", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			providerMock := NewMockProvider(ctrl)
+			providerMock := providertest.NewMockProvider(ctrl)
 
 			providerMock.EXPECT().Config(gomock.Any()).Return(map[string]string{
 				"TEST1": "abc",
@@ -90,7 +92,7 @@ func TestDynamic(t *testing.T) {
 				"TEST1": "abc", // same as initial
 			}, nil)
 
-			dynamic, err := NewDynamic(providerMock)
+			dynamic, err := config.NewDynamic(providerMock)
 			if err != nil {
 				t.Fatalf("expecting nil error when initializing dynamic, got %v", err)
 			}
@@ -123,7 +125,7 @@ func TestDynamic(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			errCbCounter := atomic.Int32{}
 			ctrl := gomock.NewController(t)
-			providerMock := NewMockProvider(ctrl)
+			providerMock := providertest.NewMockProvider(ctrl)
 
 			providerMock.EXPECT().Config(gomock.Any()).Return(map[string]string{
 				"TEST1": "abc",
@@ -134,8 +136,8 @@ func TestDynamic(t *testing.T) {
 				"TEST2": "def1",
 			}, nil)
 
-			dynamic, err := NewDynamic(providerMock,
-				WithErrCallback(func(_ error) {
+			dynamic, err := config.NewDynamic(providerMock,
+				config.WithErrCallback(func(_ error) {
 					errCbCounter.Add(1)
 				}),
 			)

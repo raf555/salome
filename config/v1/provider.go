@@ -2,7 +2,7 @@ package config
 
 import "context"
 
-//go:generate go tool mockgen -typed -source provider.go -destination provider.mock.gen.go -package config
+//go:generate go tool mockgen -typed -source provider.go -destination providertest/provider.mock.gen.go -package providertest
 
 type Provider interface {
 	// Config provides a config that is initially read by the provider.
