@@ -27,7 +27,8 @@ func New(config Config) (*ConfigProvider, error) {
 	return NewWithOptions(config.SiteUrl, SecretConfig{
 		ProjectSlug: config.ProjectSlug,
 		Environment: config.Environment,
-		ConfigPath:  config.ConfigPath,
+		ConfigPath:     config.ConfigPath,
+		IncludeImports: config.IncludeImports,
 	}, opts...)
 }
 
@@ -76,7 +77,8 @@ func (c *ConfigProvider) FetchConfig(_ context.Context) (map[string]string, erro
 	secrets, err := c.client.Secrets().List(infisical.ListSecretsOptions{
 		ProjectSlug: c.secretConfig.ProjectSlug,
 		Environment: c.secretConfig.Environment,
-		SecretPath:  c.secretConfig.ConfigPath,
+		SecretPath:     c.secretConfig.ConfigPath,
+		IncludeImports: c.secretConfig.IncludeImports,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("c.client.Secrets.List: %w", err)

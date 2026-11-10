@@ -3,6 +3,7 @@ package dotenv_test
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/raf555/salome/config/v1/providers/dotenv"
@@ -51,6 +52,41 @@ func TestReadConfig(t *testing.T) {
 	defer os.Remove(testFile) // Clean up after test
 
 	provider, _ := dotenv.New(testFile)
+
+	configs, err := provider.Config(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, "value", configs["KEY"])
+}
+
+func TestNewAllowMissingWithoutFile(t *testing.T) {
+	testFile := filepath.Join(t.TempDir(), "missing.env")
+
+	provider, err := dotenv.New(testFile, dotenv.WithAllowMissing())
+	assert.NoError(t, err)
+
+	configs, err := provider.Config(t.Context())
+	assert.NoError(t, err)
+	assert.Empty(t, configs)
+
+	// The file can appear after creation.
+	os.WriteFile(testFile, []byte("KEY=value\n"), 0644)
+	configs, err = provider.FetchConfig(t.Context())
+	assert.NoError(t, err)
+	assert.Equal(t, "value", configs["KEY"])
+
+	// And disappear again.
+	os.Remove(testFile)
+	configs, err = provider.FetchConfig(t.Context())
+	assert.NoError(t, err)
+	assert.Empty(t, configs)
+}
+
+func TestNewAllowMissingWithFile(t *testing.T) {
+	testFile := filepath.Join(t.TempDir(), "present.env")
+	os.WriteFile(testFile, []byte("KEY=value\n"), 0644)
+
+	provider, err := dotenv.New(testFile, dotenv.WithAllowMissing())
+	assert.NoError(t, err)
 
 	configs, err := provider.Config(t.Context())
 	assert.NoError(t, err)
