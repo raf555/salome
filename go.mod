@@ -10,7 +10,7 @@ require (
 	github.com/puzpuzpuz/xsync/v3 v3.5.1
 	github.com/remychantenay/slog-otel v1.3.5
 	github.com/samber/slog-formatter v1.3.0
-	github.com/sethvargo/go-envconfig v1.3.0
+	github.com/sethvargo/go-envconfig v1.4.3
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/contrib/bridges/prometheus v0.69.0
 	go.opentelemetry.io/contrib/instrumentation/host v0.71.0

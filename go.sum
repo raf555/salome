@@ -141,8 +141,8 @@ github.com/samber/slog-formatter v1.3.0 h1:dpvLVSX883WSI222gUtEMLRd5ZOlKkmQlkrov
 github.com/samber/slog-formatter v1.3.0/go.mod h1:9y2j6qgrCpa7B5Kbv/sKp1ak7wJ91tsswp1BHOUSukc=
 github.com/samber/slog-multi v1.8.0 h1:E05c1wnQ+8M58oQDBABlJ4TEIJWssNgtckso3zlaLlI=
 github.com/samber/slog-multi v1.8.0/go.mod h1:6+3j/ILxDvAcLD75YdQAm6iKWu6AmwlohLgQxL/2aiI=
-github.com/sethvargo/go-envconfig v1.3.0 h1:gJs+Fuv8+f05omTpwWIu6KmuseFAXKrIaOZSh8RMt0U=
-github.com/sethvargo/go-envconfig v1.3.0/go.mod h1:JLd0KFWQYzyENqnEPWWZ49i4vzZo/6nRidxI8YvGiHw=
+github.com/sethvargo/go-envconfig v1.4.3 h1:9RJrW9aiy3SJVRJ1svntpZvBw3ghj941u/BseS/TokY=
+github.com/sethvargo/go-envconfig v1.4.3/go.mod h1:ebe6rgj7KzrRZPzDXU4W6WZWDEirQwvcgmS0bmC3Sjg=
 github.com/shirou/gopsutil/v4 v4.26.7 h1:IXzpHz/dkMRYAhKkOXr1HB6SuzWU3eoyyeWe7g3bNZc=
 github.com/shirou/gopsutil/v4 v4.26.7/go.mod h1:5O9FjBiXoTDFatIWjZZosqj4pV0DRtLx598xGbBehzM=
 github.com/sony/gobreaker v0.5.0 h1:dRCvqm0P490vZPmy7ppEk2qCnCieBooFJ+YoXGYB+yg=
